@@ -1,0 +1,2 @@
+id,order_cutoff,daily_holding_per_kg,disposal_per_kg,ordering_fee,demand_unit
+default,16:00:00+08:00,0.20,0.60,10.00,kg

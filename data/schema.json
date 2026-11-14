@@ -1,0 +1,74 @@
+{
+  "inventory": {
+    "key": "id",
+    "columns": {
+      "id": "text",
+      "sku": "text",
+      "quantity_kg": "number",
+      "available_at": "time",
+      "expires_at": "time",
+      "unit_cost": "money"
+    },
+    "description": "模拟起点实际可用批次；到 expires_at 即不可售，过期时刻不是最后可售时刻。",
+    "references": {}
+  },
+  "supplier_days": {
+    "key": "id",
+    "columns": {
+      "id": "text",
+      "day": "date",
+      "supplier": "text",
+      "common_delay_days": "int",
+      "capacity_kg": "number"
+    },
+    "description": "供应商日共同冲击和可交付容量，所有品种共享，不是模拟时可提前得知的信号。",
+    "references": {}
+  },
+  "receipts": {
+    "key": "id",
+    "columns": {
+      "id": "text",
+      "sku": "text",
+      "supplier": "text",
+      "ordered_at": "time",
+      "expected_day": "date",
+      "available_at": "time",
+      "expires_at": "time",
+      "quantity_kg": "number",
+      "unit_cost": "money",
+      "supplier_day_id": "text"
+    },
+    "description": "历史实际到货，用于供货情景资料；只在 available_at 后成为策略可见的实物，不能直接当候选策略的既定订量。",
+    "references": {
+      "supplier_day_id": "supplier_days.id"
+    }
+  },
+  "demand": {
+    "key": "id",
+    "columns": {
+      "id": "text",
+      "sku": "text",
+      "requested_at": "time",
+      "requested_kg": "number?",
+      "sold_kg": "number",
+      "price": "money",
+      "returned_kg": "number",
+      "return_disposition": "text"
+    },
+    "description": "独立意向量与实际售出量分开；意向空值表示未采到，不是用销量替代的许可。退货报废不回到可售库存。",
+    "references": {}
+  },
+  "policy": {
+    "key": "id",
+    "columns": {
+      "id": "text",
+      "order_cutoff": "text",
+      "daily_holding_per_kg": "money",
+      "disposal_per_kg": "money",
+      "ordering_fee": "money",
+      "demand_unit": "text"
+    },
+    "description": "经营成本与每日规则，库存按公斤连续计量；订货发生在需求之后的下午截止点。",
+    "references": {}
+  }
+}
