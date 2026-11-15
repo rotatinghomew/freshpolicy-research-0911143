@@ -23,6 +23,15 @@ def main():
                 restored = json.load(response)
             assert created == restored
             print("研究记录已回读", restored["id"], restored["source_fingerprint"])
+            trial_body = json.dumps({"label": "补货规则试算", "scenarios": 4}, ensure_ascii=False).encode()
+            request = Request(base + "/trials", data=trial_body, headers={"Content-Type": "application/json"})
+            with urlopen(request, timeout=30) as response:
+                trial = json.load(response)
+            headline = {name: metrics["contribution"]["mean"] for name, metrics in trial["report"]["bootstrap"]["rules"].items()}
+            print("试算经营贡献均值", json.dumps(headline, ensure_ascii=False))
+            with urlopen(base + f"/trials/{trial['id']}/trace?rule=intent_average&scenario=1", timeout=30) as response:
+                trace = json.load(response)
+            print("追溯天数", len(trace["days"]), "首日", trace["days"][0]["date"])
         finally:
             server.shutdown()
             server.server_close()

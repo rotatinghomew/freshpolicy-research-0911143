@@ -5,18 +5,22 @@ from urllib.parse import parse_qs, urlsplit
 from .cases import CaseStore
 from .catalog import Catalog
 from .domain import overview
+from .evaluation import compute_trace, normalize_spec, run_trial
 from .profile import numeric_profiles
+from .trials import TrialStore
 
 
 class Application:
     def __init__(self, data, state):
         self.catalog = Catalog(data)
         self.cases = CaseStore(state)
+        self.trials = TrialStore(state)
 
     def dispatch(self, method, target, body=None):
         parsed = urlsplit(target)
         path = parsed.path.rstrip("/") or "/"
         query = parse_qs(parsed.query)
+        parts = [part for part in path.split("/") if part]
         try:
             if method == "GET" and path == "/health":
                 return 200, {"status": "ok", "source_fingerprint": self.catalog.fingerprint}
@@ -44,6 +48,22 @@ class Application:
                 if set(body) - {"label", "options", "notes"}:
                     raise ValueError("请求包含未知字段")
                 return 201, self.cases.create(self.catalog, body.get("label"), body.get("options"), body.get("notes", ""))
+            if method == "POST" and path == "/trials":
+                spec = normalize_spec(self.catalog, body)
+                report = run_trial(self.catalog, spec)
+                return 201, self.trials.create(self.catalog, spec, report)
+            if method == "GET" and path == "/trials":
+                return 200, {"trials": self.trials.list()}
+            if method == "GET" and len(parts) == 2 and parts[0] == "trials":
+                return 200, self.trials.read(parts[1])
+            if method == "GET" and len(parts) == 3 and parts[0] == "trials" and parts[2] == "trace":
+                record = self.trials.read(parts[1])
+                try:
+                    scenario = int(query.get("scenario", ["1"])[0])
+                except ValueError as error:
+                    raise ValueError("情景序号无效") from error
+                rule = query.get("rule", [record["spec"]["baseline"]])[0]
+                return 200, compute_trace(self.catalog, record["spec"], rule, scenario)
         except KeyError:
             return 404, {"error": "记录不存在"}
         except (TypeError, ValueError) as error:
